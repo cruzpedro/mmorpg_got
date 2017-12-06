@@ -1,3 +1,80 @@
 module.exports.jogo = function (application, req, res) {
-    res.render('jogo');
+    if(!req.session.autorizado) {
+        res.send('Usuário precisa fazer login');
+        return;
+    }
+
+    var msg = '';
+    if(req.query.msg !== '') {
+        msg = req.query.msg;
+    }
+
+    var connection = application.config.dbConnection;
+    var JogoDAO = new application.app.models.JogoDAO(connection);
+
+    var usuario = req.session.usuario;
+    var casa = req.session.casa;
+
+    JogoDAO.iniciaJogo(res, usuario, casa, msg);
+};
+
+module.exports.sair = function (application, req, res) {
+    req.session.destroy(function (err) {
+        res.render('index', {errors: {}});
+    })
+};
+
+module.exports.suditos = function (application, req, res) {
+    if(!req.session.autorizado) {
+        res.send('Usuário precisa fazer login');
+        return;
+    }
+    res.render('aldeoes');
+};
+
+module.exports.pergaminhos = function (application, req, res) {
+    if(!req.session.autorizado) {
+        res.send('Usuário precisa fazer login');
+        return;
+    }
+
+    var connection = application.config.dbConnection;
+    var JogoDAO = new application.app.models.JogoDAO(connection);
+    var usuario = req.session.usuario;
+
+    JogoDAO.getAcoes(res, usuario);
+};
+
+module.exports.ordenar_acao_sudito = function (application, req, res) {
+    if(!req.session.autorizado) {
+        res.send('Usuário precisa fazer login');
+        return;
+    }
+    var dadosForm = req.body;
+
+    req.assert('acao', 'Ação deve ser informada').notEmpty();
+    req.assert('quantidade', 'Quantidade deve ser informada').notEmpty();
+
+    var errors = req.validationErrors();
+    if(errors) {
+        res.redirect('jogo?msg=A');
+        return;
+    }
+
+    var connection = application.config.dbConnection;
+    var JogoDAO = new application.app.models.JogoDAO(connection);
+
+    dadosForm.usuario = req.session.usuario;
+    JogoDAO.acao(dadosForm);
+
+    res.send('jogo?msg=B');
+};
+
+module.exports.revogar_acao = function (application, req, res) {
+    var _id = req.query;
+
+    var connection = application.config.dbConnection;
+    var JogoDAO = new application.app.models.JogoDAO(connection);
+
+    JogoDAO.revogarAcao(_id, res);
 };
